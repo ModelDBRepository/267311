@@ -1,0 +1,65 @@
+<html>
+<body>
+<p>
+Model files using NEURON (v8.0.0) simulation environment and Python 3.8 programming language for the paper:
+</p>
+<p>
+"Somatic depolarization enhances hippocampal CA1 dendritic spike propagation and distal input-driven
+synaptic plasticity" by Tobias Bock, Adrian Negrean, and Steven A. Siegelbaum, 2022, <i>The Journal of Neuroscience</i>.
+</p>
+<hr>
+<ol>
+<li><b>Contact</b><br>
+<ul><li>For inquiries and comments regarding the code contact:
+Adrian Negrean at an2788@columbia.edu or negreanadrian@gmail.com
+</li>
+<li>For all other inquiries please contact the corresponding author: Tobias Bock at htb2110@columbia.edu</li>
+</ul></li>
+<li><b>General requirements</b><br>
+<ul>
+<li>Python 3.x (tested 3.8)</li>
+<li>NEURON (tested v8.0.0)</li>
+<li>to compile .mod mechanism files, cd to ./mechs/main-mech and run: <code>nrnivmodl .</code>
+</ul>
+</li>
+<li><b>Installation</b><br>
+<ul>
+<li>
+For a fresh installation, use conda to manage multiple pyhton environments.
+  To create a new conda environment called "<code>nrn3.8</code>" that uses Python 3.8:<br>
+	<code>conda create -n nrn3.8 python=3.8</code>
+</li>
+<li>
+To activate the new environment: <code>conda activate nrn3.8</code>
+</li>
+<li>To install latest NEURON (here ver 8.0.0): <code>pip3 install neuron</code> (mac and linux) or use the <a href="https://nrn.readthedocs.io/en/latest/install/install_instructions.html#windows">installer</a> for windows</li>
+<li>To check correct installation of NEURON in the Python environment, import package:<br>
+	<code>from neuron import h, gui</code>
+</li>
+<li>Install required packages until all import errors are resolved.</li>
+</ul>
+</li>
+<li><b>Usage</b><br>
+<ul>
+<li>
+The simulation is organized around a core user-editable JSON file called a
+"workflow", e.g. "./docs/workflows/main-workflow.json" that contains pre-defined computational tasks:
+<ul>
+<li>"dedsp": Reproduces Fig 3B, Depolarization Enhacement of Dendritic Spike Propagation (DEDSP) with A-type K-channels.</li>
+<li>"dedsp_no_ka": Reproduces Fig 3C, tuft plateau spike propagation with A-type channels blocked.</li>
+<li>"dedsp_no_dend_spike": Reproduces Fig 3D, tuft subthreshold depolarization (no plateau) propagation with A-type channels.</li>
+</ul></li>
+<li>Each computational task consists of one or more task steps, each with settings described under "task-steps", e.g.
+"dedsp" task has two steps, "run_model:dedsp" to run the simulation and "plot_recpar:vm" to plot results.</li>
+<li>To get help on setting for launching the simulation from the terminal: <code>python simctr.py --help</code></li>
+<li>To launch a computational task, e.g. "dedsp" from the terminal using the default workflow JSON:<br>
+	<code>python simctr.py ./docs/workflows/main-workflow.json dedsp</code>
+</li>
+</ul></li>
+</ol>
+<p>
+Each task run will save the current workflow and recorded variables in addition to other task dependent outputs to a defined
+output folder set in the workflow JSON under "task_output".
+</p>
+</body>
+</html>

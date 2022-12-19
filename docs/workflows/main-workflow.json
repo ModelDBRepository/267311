@@ -1,0 +1,571 @@
+// Workflow settings for reproducing Fig 3 from:
+// "Somatic depolarization enhances hippocampal CA1 dendritic spike propagation and distal input-driven
+// synaptic plasticity" by Tobias Bock, Adrian Negrean, and Steven A. Siegelbaum, 2022, The Journal of Neuroscience.
+{
+    // relative task output folder w.r.t. simctr.py script (use no ./)
+    "task_output": "task-output",
+    // relative folder path to store neuron morphologies w.r.t. simctr.py script (use no ./)
+    "nrn_morph": "morph",
+    // relative folder path from which to load NMODL externally compiled mechanism w.r.t. simctr.py script (use no ./)
+    "nrn_mech": "mechs/main-mech",
+    // callable tasks
+    "tasks":
+        {
+            "dedsp":
+                [
+                    "run_model:dedsp",
+                    "plot_recpar:vm",
+                ],
+            "dedsp_no_ka":
+                [
+                    "run_model:dedsp_no_ka",
+                    "plot_recpar:vm",
+                ],
+            "dedsp_no_dend_spike":
+                [
+                    "run_model:dedsp_no_dend_spike",
+                    "plot_recpar:vm",
+                ]
+        },
+    // NEURON model settings
+    // note, the following model names are reserved:
+    // "NM<num>" - morphology models
+    // "SCM<num>" - single compartment morphology
+    // "CCM<num>" - chained compartment morphology
+    // "C<num>" - capacitance models
+    // "RA<num>" - axial resistivity models
+    // Each model can contain a segment specification attribute "segspec" that can be a dict or a list of dict
+    // see documentation for set_seg() function in nrnengine/nrn_util.py
+    "models":
+        {
+            // environment specification
+            // slice recording from present study
+            "ENV1":
+                {
+                    // temperature in [degC]
+                    "temp": 35,
+                    // ionic concentrations in [mM]
+                    "ions":
+                        {
+                            "nai": 20.8,
+                            "nao": 151.25,
+                            "ki": 140.0,
+                            "ko": 3.0,
+                            "cai": 1e-6, // pipette has 0.2 mM EGTA, actual free Ca2+ is unknown but in the nM range.
+                            "cao": 2.0,
+                            "cli": 7.0,
+                            "clo": 134.0
+                        }
+                },
+            // single compartment morphology
+            "SCM1":
+                {
+                    // section name
+                    "sec_name": "soma",
+                    // number of segments, default is 1
+                    "nseg": 1,
+                    // length in [um], default is 20 um
+                    "L": 20,
+                    // segment diameter, default is 20 um
+                    "diam": 20
+                },
+            // chained compartment morphology
+            "CCM1":
+                {
+                    // add here compartment names in the order in which they should be connected
+                    "soma":
+                        {
+                            // number of segments, default is 1
+                            "nseg": 1,
+                            // length in [um], default is 20 um
+                            "L": 20,
+                            // segment diameter, default is 20 um
+                            "diam": 20
+                        },
+                    "trunk":
+                        {
+                            // number of segments, default is 1
+                            "nseg": 19,
+                            // length in [um], default is 20 um
+                            "L": 400,
+                            // segment diameter, default is 20 um
+                            "diam": 2
+                        },
+                    "tuft":
+                        {
+                           // number of segments, default is 1
+                            "nseg": 1,
+                            // length in [um], default is 20 um
+                            "L": 20,
+                            // segment diameter, default is 20 um
+                            "diam": 20 
+                        }
+                },
+            // uniform specific axial resistivity in [Ohm*cm] 
+            "RA1":
+                {
+                    "segspec":
+                        {
+                            // set same for all sections
+                            "Ra": 700
+                        }
+                },   
+            // capacitance setting for a 3 compartment model
+            "C1":
+                {
+                    "segspec":
+                        {
+                            "cm": {"soma": 10, "trunk": 4.5, "tuft": 10}
+                        }
+                },
+            // passive parameters
+            "GPAS1":
+                {
+                    "segspec":
+                        {
+                            // passive leak conductance density in [S/cm^2]
+                            "pas.g": 
+                                {
+                                    "soma": 6e-4,
+                                    "trunk":
+                                        {
+                                            "type": "lin2",
+                                            "refseg": "trunk(0)",
+                                            "val_at_refseg": 7e-4,
+                                            "val_at_dist": 1e-3,
+                                            "dist": 350
+                                        },
+                                    "tuft": 1e-3
+                                },
+                            // reversal potential in [mV]
+                            "pas.e": 
+                                {
+                                    "soma": -70.0,
+                                    "trunk":
+                                        {
+                                            "type": "lin2",
+                                            "refseg": "trunk(0)",
+                                            "val_at_refseg": -70,
+                                            "val_at_dist": -62,
+                                            "dist": 400
+                                        },
+                                    "tuft": -62
+                                }
+                        }
+                },
+            // R-type Voltage gated calcium channels (markov model)
+            "CaR1":
+                {
+                    "segspec":
+                        {
+                            // channel density, [/cm^2]
+                            "CaR.n":
+                                {
+                                    "tuft": 3.1e10,
+                                    "trunk": 
+                                        {
+                                            "type": "loclin",
+                                            "refseg": "trunk(0)",
+                                            "val_at_refseg": 1e7,
+                                            "val_at_end_dist": 2.4e10,
+                                            "start_dist": 110,
+                                            "end_dist": 160
+                                    }
+                                }
+                        }
+                },
+            // T-type Voltage gated calcium channels 
+            "CaT1":
+                {
+                    "segspec":
+                        {
+                            "it_cav32m2.pcabar":
+                                {
+                                    "tuft": 2e-6,
+                                    "trunk":
+                                        {
+                                            "type": "loclin",
+                                            "refseg": "trunk(0)",
+                                            "val_at_refseg": 1e-7,
+                                            "val_at_end_dist": 2e-5,
+                                            "start_dist": 100,
+                                            "end_dist": 400
+                                        }
+                                }
+                        }
+                },
+            // intracellular calcium dynamics
+            "CaD1":
+                {
+                    "segspec":
+                        {
+                            // extrusion rate in [ms]
+                            "cad.taur": 200.0
+                        }
+                },
+            // medium after-hyperpolarization calcium activated potassium channels
+            "mAHP1":
+                {
+                    "segspec":
+                        {
+                            // maximum conductance density in S/cm^2
+                            "mykca.gkbar": {"soma": 1e-6, "trunk": 1e-5, "tuft":3.5e-4}
+                        }
+                },
+            // A-type potassium channels
+            "KA1":
+                {
+                    "segspec":
+                    {
+                        "ka.gbar": 
+                            {
+                                "soma": 1e-4,
+                                "trunk":
+                                    {
+                                        "type": "lin2",
+                                        "refseg": "trunk(0.7)",
+                                        "val_at_refseg": 3e-2,
+                                        "val_at_dist": 5e-4,
+                                        "dist": 200,
+                                        "cutoff": 0
+                                    },
+                                "tuft": 5e-4
+                            }
+                    }
+                },
+            // delayed rectifyer potassium channels
+            "KDR1":
+                {
+                    "segspec":
+                        {
+                            "kdr.gbar": 
+                                {
+                                    "soma": 2e-3,
+                                    "trunk": 
+                                        {
+                                            "type": "lin1",
+                                            "refseg": "soma(1)",
+                                            "slope": -1e-5,
+                                            "cutoff": 5e-4
+                                        },
+                                    "tuft": 5e-4
+                                }
+                        }
+                },
+            // HCN channels
+            "HCN1":
+                {
+                    "segspec":
+                        {
+                            "hq.gbar":
+                                {
+                                    "soma": 8e-4,
+                                    "trunk":
+                                        {
+                                            "type": "lin2",
+                                            "refseg": "trunk(0)",
+                                            "val_at_refseg": 8e-4,
+                                            "val_at_dist": 6e-3,
+                                            "dist": 400
+                                        },
+                                    "tuft":6e-3
+                                },
+                            "hq.a0": 0.0024
+                        }
+                },
+            // current injections
+            "IC1":
+                {
+                    "iclamps":
+                        {
+                            // name here each current clamp and ensure the name of this point process is unique among all models
+                            // for controlling somatic membrane potential
+                            "ic1":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 500,
+                                            "dur": 600,
+                                            "amp": 0.1
+                                        },
+                                    "seg": "soma(0.5)"
+                                },
+                            // for inducing tuft spike
+                            "ic2":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 700,
+                                            "dur": 200,
+                                            "amp": 0.5
+                                        },
+                                    "seg": "tuft(0.5)"
+                                },
+                            // somatic test pulse for input resistance and capacitance
+                            "ic3":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 100,
+                                            "dur": 100,
+                                            "amp": -0.2
+                                        },
+                                    "seg": "soma(0.5)"
+                                },
+                            // tuft test pulse for input resistance and capacitance 
+                            "ic4":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 300,
+                                            "dur": 100,
+                                            "amp": -0.2
+                                        },
+                                    "seg": "tuft(0.5)"
+                                },       
+                        }
+
+                },
+            // current injections, modified so that the dendritic current step is 250 pA instead of 500 pA and thus does not
+            // result in a dendritic spike
+            "IC1nodendspike":
+                {
+                    "iclamps":
+                        {
+                            // name here each current clamp and ensure the name of this point process is unique among all models
+                            // for controlling somatic membrane potential
+                            "ic1":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 500,
+                                            "dur": 600,
+                                            "amp": 0.1
+                                        },
+                                    "seg": "soma(0.5)"
+                                },
+                            // no longer inducing tuft spike
+                            "ic2":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 700,
+                                            "dur": 200,
+                                            "amp": 0.25
+                                        },
+                                    "seg": "tuft(0.5)"
+                                },
+                            // somatic test pulse for input resistance and capacitance
+                            "ic3":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 100,
+                                            "dur": 100,
+                                            "amp": -0.2
+                                        },
+                                    "seg": "soma(0.5)"
+                                },
+                            // tuft test pulse for input resistance and capacitance 
+                            "ic4":
+                                {
+                                    "waveform":
+                                        {
+                                            "type": "step",
+                                            "delay": 300,
+                                            "dur": 100,
+                                            "amp": -0.2
+                                        },
+                                    "seg": "tuft(0.5)"
+                                },       
+                        }
+
+                }
+        },
+    // task steps e.g. setting up models, displaying plots
+    "task-steps":
+        {
+            "run_model:dedsp":
+                {
+                    // load HOC files; use relative file paths w.r.t. simctr.py script (use no ./)
+                    // not needed separately since resegmentation is done automatically after applying
+                    // morphology, capacitance and axial resistivity models in this order
+                    // note 1: do not load morphology here, as this will clear morphology with each loading step
+                    // note 2: loading will be done only once before start of all parameter sweeps (which will rebuild the model on each run)
+                    "load_hoc": ["morph/fixnseg.hoc"],
+                    // model specification
+                    "mspec": "ENV1-CCM1-RA1-C1-GPAS1-CaR1-CaT1-CaD1-mAHP1-KA1-KDR1-HCN1-IC1",
+                    // simulation duration in [ms]
+                    "simdur": 1200,
+                    // if using fixed time step, time step in [ms]
+                    "dt": 0.2,
+                    // optional, frequency at which AC length constant will be computed in [Hz], default 100
+                    "d_lambda_freq": 100,
+                    // optional, AC length constant, default 0.1
+                    "d_lambda": 0.1,
+                    // optional, maximum length of a segment in [um] if d_lambda rule is not used, default is 2 um
+                    "maxLseg": 2,
+                    // optional, for morphology segmentation, if true, use d_lambda rule, otherwise apply maxLseg rule, default is true
+                    "use_d_lambda": true,
+                    // initialize all segments to this membrane potential
+                    "vinit": -65,
+                    // - segment parameters can be recorded as "seg:<par name>", while point process parameters as "pp:<par name>"
+                    // - for each segment or point process parameter, list sources from which these should be measured, e.g.
+                    //   "seg:v": ["soma(0.5)"] to measure voltage from the middle of the somatic section or "pp:i": ["ic1"] to
+                    //   record the current from a current clamp "ic1" defined in "models" above.
+                    // - segment parameters can be recorded from segments "soma(0.5)", from all segments of a section "soma" and
+                    //   section and segment lists defined in morphology models. For section lists, append "~" to the beginning of a
+                    //   list name, while for segment lists append "#".
+                    "rec":
+                        {
+                            "seg:v": ["soma(0.5)", "trunk(0.33)", "tuft(0.5)"],
+                        },
+                    // parameter sweeps (cartesian product of parameter vectors); axes order defined by order of parameters
+                    "psweep":
+                        {
+                            "IC1/iclamps/ic1/waveform/amp":
+                                {
+                                    "min": -0.1,
+                                    "max": 0.2,
+                                    "n": 5
+                                }
+                        }
+                },
+            "run_model:dedsp_no_ka":
+                {
+                    // load HOC files; use relative file paths w.r.t. simctr.py script (use no ./)
+                    // not needed separately since resegmentation is done automatically after applying
+                    // morphology, capacitance and axial resistivity models in this order
+                    // note 1: do not load morphology here, as this will clear morphology with each loading step
+                    // note 2: loading will be done only once before start of all parameter sweeps (which will rebuild the model on each run)
+                    "load_hoc": ["morph/fixnseg.hoc"],
+                    // model specification - A-type K channels (KA) have been removed
+                    "mspec": "ENV1-CCM1-RA1-C1-GPAS1-CaR1-CaT1-CaD1-mAHP1-KDR1-HCN1-IC1",
+                    // simulation duration in [ms]
+                    "simdur": 1200,
+                    // if using fixed time step, time step in [ms]
+                    "dt": 0.2,
+                    // optional, frequency at which AC length constant will be computed in [Hz], default 100
+                    "d_lambda_freq": 100,
+                    // optional, AC length constant, default 0.1
+                    "d_lambda": 0.1,
+                    // optional, maximum length of a segment in [um] if d_lambda rule is not used, default is 2 um
+                    "maxLseg": 2,
+                    // optional, for morphology segmentation, if true, use d_lambda rule, otherwise apply maxLseg rule, default is true
+                    "use_d_lambda": true,
+                    // initialize all segments to this membrane potential
+                    "vinit": -65,
+                    // - segment parameters can be recorded as "seg:<par name>", while point process parameters as "pp:<par name>"
+                    // - for each segment or point process parameter, list sources from which these should be measured, e.g.
+                    //   "seg:v": ["soma(0.5)"] to measure voltage from the middle of the somatic section or "pp:i": ["ic1"] to
+                    //   record the current from a current clamp "ic1" defined in "models" above.
+                    // - segment parameters can be recorded from segments "soma(0.5)", from all segments of a section "soma" and
+                    //   section and segment lists defined in morphology models. For section lists, append "~" to the beginning of a
+                    //   list name, while for segment lists append "#".
+                    "rec":
+                        {
+                            "seg:v": ["soma(0.5)", "trunk(0.33)", "tuft(0.5)"],
+                        },
+                    // parameter sweeps (cartesian product of parameter vectors); axes order defined by order of parameters
+                    "psweep":
+                        {
+                            "IC1/iclamps/ic1/waveform/amp":
+                                {
+                                    "min": -0.1,
+                                    "max": 0.2,
+                                    "n": 5
+                                }
+                        }
+                },
+            "run_model:dedsp_no_dend_spike":
+                {
+                    // load HOC files; use relative file paths w.r.t. simctr.py script (use no ./)
+                    // not needed separately since resegmentation is done automatically after applying
+                    // morphology, capacitance and axial resistivity models in this order
+                    // note 1: do not load morphology here, as this will clear morphology with each loading step
+                    // note 2: loading will be done only once before start of all parameter sweeps (which will rebuild the model on each run)
+                    "load_hoc": ["morph/fixnseg.hoc"],
+                    // model specification - using the modified IC1 with the smaller dendritic current injection
+                    "mspec": "ENV1-CCM1-RA1-C1-GPAS1-CaR1-CaT1-CaD1-mAHP1-KA1-KDR1-HCN1-IC1nodendspike",
+                    // simulation duration in [ms]
+                    "simdur": 1200,
+                    // if using fixed time step, time step in [ms]
+                    "dt": 0.2,
+                    // optional, frequency at which AC length constant will be computed in [Hz], default 100
+                    "d_lambda_freq": 100,
+                    // optional, AC length constant, default 0.1
+                    "d_lambda": 0.1,
+                    // optional, maximum length of a segment in [um] if d_lambda rule is not used, default is 2 um
+                    "maxLseg": 2,
+                    // optional, for morphology segmentation, if true, use d_lambda rule, otherwise apply maxLseg rule, default is true
+                    "use_d_lambda": true,
+                    // initialize all segments to this membrane potential
+                    "vinit": -65,
+                    // - segment parameters can be recorded as "seg:<par name>", while point process parameters as "pp:<par name>"
+                    // - for each segment or point process parameter, list sources from which these should be measured, e.g.
+                    //   "seg:v": ["soma(0.5)"] to measure voltage from the middle of the somatic section or "pp:i": ["ic1"] to
+                    //   record the current from a current clamp "ic1" defined in "models" above.
+                    // - segment parameters can be recorded from segments "soma(0.5)", from all segments of a section "soma" and
+                    //   section and segment lists defined in morphology models. For section lists, append "~" to the beginning of a
+                    //   list name, while for segment lists append "#".
+                    "rec":
+                        {
+                            "seg:v": ["soma(0.5)", "trunk(0.33)", "tuft(0.5)"],
+                        },
+                    // parameter sweeps (cartesian product of parameter vectors); axes order defined by order of parameters
+                    "psweep":
+                        {
+                            "IC1nodendspike/iclamps/ic1/waveform/amp":
+                                {
+                                    "min": -0.1,
+                                    "max": 0.2,
+                                    "n": 5
+                                }
+                        }
+                },
+            "plot_recpar:vm":
+                // list of plots
+                [
+                    {
+                        // note: for parameter sweeps, the last axis is used to sweep through a color palette
+                        "display":
+                            {
+                                // share left and right y axes respectively between cells as [true/false] (x axis is time and shared by default)
+                                "share_yaxes": [true, true],
+                                // suptitle formatter, insert string specifier {} for formatting custom labels
+                                "suptitle": "",
+                                // shared left y-axis label
+                                // n.b. for including latex symbols, need to escape backslash with another backslash
+                                "shared_left_yaxis_label": "vm (mV)",
+                                // shared right y-axis label
+                                // n.b. for including latex symbols, need to escape backslash with another backslash
+                                "shared_right_yaxis_label": "ic1.i (nA)"
+                            },
+                        "recdata":
+                            // list of dict describing parameters to plot
+                            [
+                                {
+                                    // pass here a single recording parameter string, e.g. segment voltage as "seg:v"
+                                    "recpar": "seg:v",
+                                    // optional, if recorded parameter is from a section, then use recordings only from a single
+                                    // segment at given normalized location within the section; default is 0.5
+                                    "seg_x_loc": 0.5,
+                                    // optional, limit plotting of recorded parameters to certain sections or segments; for default all pass empty list
+                                    "secseg": [],
+                                    // optional, use either a single color or a color palette across a parameter sweep (last axis of psweep)
+                                    // use: pass either an RGB, RGBA list of values, named colors, or predefined color palette name.
+                                    "color": "cpal:b",
+                                    "axis": "left"
+                                }
+                            ]
+                    }
+                ]
+        }
+}
